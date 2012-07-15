@@ -19,6 +19,17 @@ HEROKU_ADDONS = (
 ########## END GLOBALS
 
 
+@task
+def installplugins():
+    """Install the heroku config plugin"""
+    local('heroku plugins:install git://github.com/joelvh/heroku-config.git')
+
+@task
+def generatesecret():
+    """Generates a random secret key that can be pushed to heroku"""
+    print 'SECRET_KEY=' + ''.join([choice('abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*(-_=+)') for i in range(50)])
+
+
 ########## HELPERS
 def cont(cmd, message):
     """Given a command, ``cmd``, and a message, ``message``, allow a user to
@@ -75,7 +86,14 @@ def collectstatic():
 
 ########## HEROKU MANAGEMENT
 @task
-def bootstrap():
+def installaddons(name=''):
+    """Install all ``HEROKU_ADDONS``"""
+    for addon in HEROKU_ADDONS:
+        cont('heroku addons:add %s' % addon,
+            "Couldn't add %s to your Heroku app, continue anyway?" % addon)
+
+@task
+def bootstrap(name=''):
     """Bootstrap your new application with Heroku, preparing it for a production
     deployment. This will:
 
@@ -85,11 +103,9 @@ def bootstrap():
         - Apply all database migrations.
         - Initialize New Relic's monitoring add-on.
     """
-    cont('heroku create', "Couldn't create the Heroku app, continue anyway?")
+    cont('heroku create %s' % name, "Couldn't create the Heroku app, continue anyway?")
 
-    for addon in HEROKU_ADDONS:
-        cont('heroku addons:add %s' % addon,
-            "Couldn't add %s to your Heroku app, continue anyway?" % addon)
+    installaddons()
 
     cont('git push heroku master',
             "Couldn't push your application to Heroku, continue anyway?")
